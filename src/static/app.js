@@ -44,7 +44,50 @@ document.addEventListener("DOMContentLoaded", () => {
           details.participants.forEach((p) => {
             const li = document.createElement("li");
             li.className = "participant-item";
-            li.textContent = p; // safe insertion via textContent
+
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = p; // safe insertion via textContent
+            li.appendChild(nameSpan);
+
+            const delBtn = document.createElement("button");
+            delBtn.className = "participant-delete";
+            delBtn.title = "Unregister";
+            delBtn.type = "button";
+            delBtn.innerHTML = "✕";
+            delBtn.addEventListener("click", async () => {
+              try {
+                const res = await fetch(
+                  `/activities/${encodeURIComponent(name)}/unregister?email=${encodeURIComponent(p)}`,
+                  { method: "DELETE" }
+                );
+
+                const result = await res.json();
+
+                if (res.ok) {
+                  messageDiv.textContent = result.message;
+                  messageDiv.className = "success";
+                  messageDiv.classList.remove("hidden");
+                  // Refresh activities to reflect change
+                  fetchActivities();
+                } else {
+                  messageDiv.textContent = result.detail || "Failed to unregister";
+                  messageDiv.className = "error";
+                  messageDiv.classList.remove("hidden");
+                }
+
+                // Hide message after 5 seconds
+                setTimeout(() => {
+                  messageDiv.classList.add("hidden");
+                }, 5000);
+              } catch (error) {
+                messageDiv.textContent = "Failed to unregister. Please try again.";
+                messageDiv.className = "error";
+                messageDiv.classList.remove("hidden");
+                console.error("Error unregistering:", error);
+              }
+            });
+
+            li.appendChild(delBtn);
             ul.appendChild(li);
           });
           participantsSection.appendChild(ul);
@@ -91,6 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities so the new participant shows up immediately
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
